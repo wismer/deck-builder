@@ -15,4 +15,5 @@
 //= require turbolinks
 //= require JSXTransformer.js
 //= require react-with-addons.js
+//= require underscore-min.js
 //= require_tree ./components
