@@ -4,7 +4,17 @@
 // filters will be handled by the active list component
 var DeckBuilder = React.createClass({
   getInitialState: function() {
-    return { activeSets: [], inactiveSets: [] };
+    return { activeSets: [], inactiveSets: {} };
+  },
+
+  handleAddExpansion: function(code, year) {
+    // takes the set residing in inactiveSets
+    // and places it into activeSets. Then re-renders.
+    var inactiveSets = this.state.inactiveSets;
+    var activeSets = this.state.activeSets;
+    var selectedSet = inactiveSets[code];
+
+
   },
 
   componentWillMount: function() {
@@ -19,50 +29,64 @@ var DeckBuilder = React.createClass({
   },
 
   render: function() {
+    var cardPool = [];
+
+    Object.keys(this.state.activeSets).forEach(function(set){
+      cardPool = cardPool.concat(set.cards);
+    })
+
     return (
       <div id='deck-builder'>
-        <ExpansionList sets={this.state.inactiveSets} />
+        <InActiveExpansionList handleAddExpansion={this.handleAddExpansion} sets={this.state.inactiveSets} />
+        <Builder sets={this.state.activeSets}>
+          <ExpansionTags />
+          <CardCatalog cardPool={cardPool} />
+        </Builder>
       </div>
     )
   }
 })
 
-var ExpansionList = React.createClass({
+// actively selected sets are pooled into the builder component.
+// most interactivity happens here. Lots of events to handle...
+
+var Builder = React.createClass({
+  render: function() {
+    return (
+      <div>{this.props.children}</div>
+    )
+  }
+})
+
+var ExpansionTags = React.createClass({
+  render: function() {
+    return (
+      <div></div>
+    )
+  }
+})
+
+
+var CardCatalog = React.createClass({
   getInitialState: function() {
-    return { expansions: {}, setsToLoad: [], activeSets: [] };
-  },
+    return {
 
-  handleOnClick: function(code, releaseDate) {
-    var expansions = this.state.expansions;
-    var expansion = expansions[code];
-    var activeSets = this.state.activeSets;
-
-    delete expansions[code];
-
-    $.getJSON("http://mtgjson.com/json/" + code + ".json", function(set){
-      activeSets.push(set);
-      this.setState({ activeSets: activeSets })
-    }.bind(this))
-  },
-
-  componentWillMount: function() {
-    var expansions = this.state.expansions;
-    $.getJSON("http://mtgjson.com/json/SetList.json", function(list){
-      list.forEach(function(set){
-        expansions[set.code] = set;
-      })
-
-      this.setState({ expansions: expansions })
-    }.bind(this))
+    }
   },
 
   render: function() {
+    return ( <div></div> )
+  }
+})
+
+var InActiveExpansionList = React.createClass({
+  render: function() {
     var self = this;
     var years = {};
-    var expansions = this.state.expansions;
+    var sets = this.props.sets;
 
-    Object.keys(expansions).forEach(function(code){
-      var expansion = expansions[code];
+    Object.keys(sets).forEach(function(code){
+      var expansion = sets[code];
       var year = new Date(expansion.releaseDate).getFullYear();
 
       if (years[year]) {
@@ -73,8 +97,8 @@ var ExpansionList = React.createClass({
     })
 
     var expansions = Object.keys(years).map(function(year){
-      var sets = years[year];
-      return <ExpansionYear year={year} loadCards={self.handleOnClick} key={year} sets={sets} />
+      var setsOfYear = years[year];
+      return <ExpansionYear year={year} handleAddExpansion={self.props.handleAddExpansion} key={year} sets={setsOfYear} />
     })
 
     return (
@@ -91,41 +115,12 @@ var ExpansionList = React.createClass({
 })
 
 
-// card-catalog ->
-//    deck -> cards
-//    preferences ->
-//    active-sets ->
-//      
-
-
-var CardCatalog = React.createClass({
-  getInitialState: function() {
-    return {
-
-    }
-  },
-
-  render: function() {
-
-  }
-})
-
-var ActiveSet = React.createClass({
-  render: function() {
-    return (
-      <div className='active-set'>
-
-      </div>
-    )
-  }
-})
-
 var ExpansionYear = React.createClass({
   render: function() {
     var self = this;
     var expansions = this.props.sets.map(function(set){
       return (
-        <Expansion loadCards={self.props.loadCards} key={set.code} {...set} />
+        <Expansion addExpansion={self.props.handleAddExpansion} key={set.code} {...set} />
       )
     })
     return (
@@ -138,20 +133,9 @@ var ExpansionYear = React.createClass({
 })
 
 var Expansion = React.createClass({
-  what: function(e) {
-    console.log(e);
-  },
-
   render: function() {
     return (
-      <div onClick={this.props.loadCards.bind(null, this.props.code, this.props.releaseDate)} className="expansion">{this.props.name}</div>
+      <div onClick={this.props.addExpansion.bind(null, this.props.code, this.props.releaseDate)} className="expansion">{this.props.name}</div>
     )
   }
 })
-
-function renderList() {
-  React.render(
-    <ExpansionList />,
-    document.getElementById("set-list")
-  )
-}
