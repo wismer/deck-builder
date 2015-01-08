@@ -7,15 +7,45 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
     return { activeSets: [], inactiveSets: {} };
   },
 
+  handleRemoveExpansion: function(selectedSet) {
+    var activeSets = this.state.activeSets;
+    var inactiveSets = this.state.inactiveSets;
+    var removedSet;
+
+    activeSets = _.filter(activeSets, function(set){
+      if (set.code === selectedSet.code) {
+        removedSet = set;
+        return false;
+      } else {
+        return true;
+      }
+    })
+
+    inactiveSets[selectedSet.code] = removedSet;
+    this.setState({ activeSets: activeSets, inactiveSets: inactiveSets })
+  },
+
   handleAddExpansion: function(code, year) {
     // takes the set residing in inactiveSets
     // and places it into activeSets. Then re-renders.
     var inactiveSets = this.state.inactiveSets;
     var activeSets = this.state.activeSets;
-    var selectedSet = inactiveSets[code];
+    var addedSet = inactiveSets[code];
 
-
+    if (addedSet.cards === undefined) {
+      $.getJSON("http://mtgjson.com/json/" + code + ".json", function(set){
+        // attach the "display" property to the object
+        set.displaySet = true;
+        // download cards, remove the set from the inactive list and add it to the active one.
+        addedSet = set;
+        delete inactiveSets[code];
+        activeSets.push(addedSet);
+        this.setState({ activeSets: activeSets, inactiveSets: inactiveSets })
+      }.bind(this))
+    }
   },
+
+  // download json file for set list.
 
   componentWillMount: function() {
     var inactiveSets = this.state.inactiveSets;
@@ -38,10 +68,7 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
     return (
       React.createElement("div", {id: "deck-builder"}, 
         React.createElement(InActiveExpansionList, {handleAddExpansion: this.handleAddExpansion, sets: this.state.inactiveSets}), 
-        React.createElement(Builder, {sets: this.state.activeSets}, 
-          React.createElement(ExpansionTags, null), 
-          React.createElement(CardCatalog, {cardPool: cardPool})
-        )
+        React.createElement(Builder, {removeExpansion: this.handleRemoveExpansion, sets: this.state.activeSets})
       )
     )
   }
@@ -52,16 +79,42 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
 
 var Builder = React.createClass({displayName: 'Builder',
   render: function() {
+    var cards = [];
+
+    this.props.sets.forEach(function(set){
+      cards = cards.concat(set.cards);
+    })
+
+    var setTags = this.props.sets.map(function(set){
+      return { name: set.name, code: set.code };
+    })
+
     return (
-      React.createElement("div", null, this.props.children)
+      React.createElement("div", {id: "active-sets"}, 
+        React.createElement(ControlPanel, {setTags: setTags, removeExpansion: this.props.removeExpansion, cardCount: cards.length}), 
+        React.createElement(CardCatalog, {cards: cards})
+      )
     )
   }
 })
 
-var ExpansionTags = React.createClass({displayName: 'ExpansionTags',
+var ControlPanel = React.createClass({displayName: 'ControlPanel',
+  // shows a summary of what's been pooled by the user and the view
+  // preferences for looking at the card catalog.
   render: function() {
+    var self = this;
+    var tags = this.props.setTags.map(function(set){
+      return (
+        React.createElement("a", {href: "#", key: set.code, onClick: self.props.removeExpansion.bind(null, set)}, 
+          React.createElement("div", {className: "set-tag"}, set.name)
+        )
+      )
+    })
+
     return (
-      React.createElement("div", null)
+      React.createElement("div", null, 
+        React.createElement("div", {id: "tags"}, tags)
+      )
     )
   }
 })
@@ -102,13 +155,8 @@ var InActiveExpansionList = React.createClass({displayName: 'InActiveExpansionLi
     })
 
     return (
-      React.createElement("div", {id: "deck-builder"}, 
-        React.createElement("div", {id: "expansion-list"}, 
-          expansions
-        ), 
-
-        React.createElement("div", {id: "active-sets"}
-        )
+      React.createElement("div", {id: "expansion-list"}, 
+        expansions
       )
     )
   }
