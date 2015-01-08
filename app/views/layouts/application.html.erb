@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>DeckBuilder</title>
+  <%= stylesheet_link_tag    'application', media: 'all', 'data-turbolinks-track' => true %>
+  <%= javascript_include_tag 'application', 'data-turbolinks-track' => true %>
+  <%= csrf_meta_tags %>
+</head>
+<body>
+  <header>
+    <div id='user-portal'>
+      <div id='user-detail'></div>
+    </div>
+  </header>
+
+  <%= yield %>
+
+  <% if user_signed_in? %>
+    <!-- welcome note here for user -->
+    <!-- include details on associated decks, logout, change password, etc. -->
+    <%= link_to 'logout', destroy_user_session_path(@user) %>
+    <script type="text/javascript">
+      renderAccount();
+    </script>
+  <% else %>
+    <script type="text/javascript">
+      renderLogin();
+    </script>
+  <% end %>
+</body>
+</html>
