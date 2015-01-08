@@ -6,7 +6,7 @@
 .DS_STORE
 # Ignore bundler config.
 /.bundle
-
+/app/assets/javascripts/components/.module-cache
 # Ignore the default SQLite database.
 /db/*.sqlite3
 /db/*.sqlite3-journal
