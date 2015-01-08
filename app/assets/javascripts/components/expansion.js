@@ -21,13 +21,14 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
   render: function() {
     return (
       React.createElement("div", {id: "deck-builder"}, 
-        React.createElement(ExpansionList, {sets: this.state.inactiveSets})
+        React.createElement(InActiveExpansionList, {sets: this.state.inactiveSets})
+        
       )
     )
   }
 })
 
-var ExpansionList = React.createClass({displayName: 'ExpansionList',
+var InActiveExpansionList = React.createClass({displayName: 'InActiveExpansionList',
   getInitialState: function() {
     return { expansions: {}, setsToLoad: [], activeSets: [] };
   },
