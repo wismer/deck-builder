@@ -1,29 +1,35 @@
 // Should the card filtering happen at the parent node, DeckBuilder, by filtering everytime it gets rendered?
 // It would seem to me that that is not an very efficient process to use. If, say, I remove a filter,
-// 
-
-var CardParams = function() {
-
-}
-
-CardParams.prototype = {
-  // accepts array of colors
-  byColor: function(colors, card) {
-    // return _.all(card.colors, colors);
-  },
-
-  byType: function(types, card) {
-    // return _.all(types);
-  }
-}
-
-
 // main component - parent of all
 // Expansion list is on the left, active list on the right.
 // filters will be handled by the active list component
 var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
   getInitialState: function() {
-    return { activeSets: [], inactiveSets: {} };
+    return {
+      activeSets: [],
+      inactiveSets: {},
+      cardPool: [],
+      cardFilters: {
+        byColor: {
+          red: false,
+          blue: false,
+          green: false,
+          artifact: false,
+          land: false,
+          black: false,
+          white: false
+        },
+
+        byType: {
+          artifact: false,
+          creature: false,
+          enchantment: false,
+          sorcery: false,
+          instant: false,
+          land: false
+        }
+      }
+    };
   },
 
   // remove expansion from the card catalog.
@@ -56,7 +62,7 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
     var addedSet = inactiveSets[code];
 
     if (addedSet.cards === undefined) {
-      $.getJSON("http://mtgjson.com/json/" + code + ".json", function(set){
+      $.getJSON("/expansions/" + code + ".json", function(set){
         // add a property of which expansion each card belongs to for future cleanup
         _.each(set.cards, function(card){
           debugger
@@ -81,13 +87,17 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
 
   componentWillMount: function() {
     var inactiveSets = this.state.inactiveSets;
-    $.getJSON("http://mtgjson.com/json/SetList.json", function(list){
+    $.getJSON("/expansions", function(list){
       list.forEach(function(set){
         inactiveSets[set.code] = set;
       })
 
       this.setState({ inactiveSets: inactiveSets })
     }.bind(this))
+  },
+
+  handleFilterChange: function(e) {
+
   },
 
   render: function() {
@@ -102,7 +112,12 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
     return (
       React.createElement("div", {id: "deck-builder"}, 
         React.createElement(InActiveExpansionList, {handleAddExpansion: this.handleAddExpansion, sets: this.state.inactiveSets}), 
-        React.createElement(Builder, {removeExpansion: this.handleRemoveExpansion, sets: sets, cards: cardPool})
+        React.createElement(Builder, null, 
+          React.createElement(ControlPanel, null, 
+            React.createElement(CardFilter, {onChange: this.handleFilterChange, filterBy: "colors", type: this.state.cardFilters.byColor}), 
+            React.createElement(CardFilter, {onChange: this.handleFilterChange, filterBy: "spells", type: this.state.cardFilters.byType})
+          )
+        )
       )
     )
   }
@@ -112,49 +127,10 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
 // most interactivity happens here. Lots of events to handle...
 
 var Builder = React.createClass({displayName: 'Builder',
-  getInitialState: function() {
-    return {
-      filteredCards: [],
-      byColor: {
-        red: false,
-        blue: false,
-        green: false,
-        artifact: false,
-        land: false,
-        black: false,
-        white: false
-      },
-
-      byType: {
-        artifact: false,
-        creature: false,
-        enchantment: false,
-        sorcery: false,
-        instant: false,
-        land: false
-      }
-    }
-  },
-
-  componentWillReceiveProps: function(sets) {
-    // debugger
-  },
-
   render: function() {
-    var cards = [];
-
-    this.props.sets.forEach(function(set){
-      cards = cards.concat(set.cards);
-    })
-
-    var setTags = this.props.sets.map(function(set){
-      return { name: set.name, code: set.code };
-    })
-
     return (
       React.createElement("div", {id: "active-sets"}, 
-        React.createElement(ControlPanel, {setTags: setTags, removeExpansion: this.props.removeExpansion, cardCount: cards.length}), 
-        React.createElement(CardCatalog, {cards: cards})
+        this.props.children
       )
     )
   }
@@ -164,27 +140,40 @@ var ControlPanel = React.createClass({displayName: 'ControlPanel',
   // shows a summary of what's been pooled by the user and the view
   // preferences for looking at the card catalog.
   render: function() {
-    var self = this;
-    var tags = this.props.setTags.map(function(set){
-      return (
-        React.createElement("a", {href: "#", key: set.code, onClick: self.props.removeExpansion.bind(null, set)}, 
-          React.createElement("div", {className: "set-tag"}, set.name)
-        )
-      )
-    })
-
     return (
       React.createElement("div", null, 
-        React.createElement("div", {id: "tags"}, tags)
+        this.props.children
       )
     )
   }
 })
-
+// mouse over a filter type and will reveal the options to pick and filter by.
 var CardFilter = React.createClass({displayName: 'CardFilter',
+  getInitialState: function() {
+    return { displaySubMenu: false };
+  },
+
+  subMenu: function() {
+    this.setState({ displaySubMenu: !this.state.displaySubMenu })
+  },
+
   render: function() {
+    var category = this.props.type;
+    var options = _.keys(category).map(function(subcategory){
+      return (
+        React.createElement("div", {className: "sub-option"}, 
+          React.createElement("input", {key: subcategory, type: "checkbox", value: subcategory}), subcategory
+        )
+      )
+    })
+    var active = "filter" + (this.state.displaySubMenu ? " active" : "");
     return (
-      React.createElement("div", null)
+      React.createElement("div", {className: "card-filter", onMouseEnter: this.subMenu, onMouseLeave: this.subMenu}, 
+        this.props.filterBy, 
+        React.createElement("div", {className: active}, 
+          options
+        )
+      )
     )
   }
 })
@@ -241,7 +230,7 @@ var InActiveExpansionList = React.createClass({displayName: 'InActiveExpansionLi
 
     Object.keys(sets).forEach(function(code){
       var expansion = sets[code];
-      var year = new Date(expansion.releaseDate).getFullYear();
+      var year = new Date(expansion.release_date).getFullYear();
 
       if (years[year]) {
         years[year].push(expansion);

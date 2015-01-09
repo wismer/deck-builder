@@ -22,3 +22,13 @@
     }
   }
 }
+
+#builder {
+  .filter {
+    display: none;
+
+    &.active {
+      display: block;
+    }
+  }
+}
