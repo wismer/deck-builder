@@ -17,7 +17,7 @@ file = File.open("./AllSets.json")
 
 card_data = JSON.load(file)
 card_data.each do |code, expansion|
-  exp_id = Expansion.create(
+  exp = Expansion.create(
     name: expansion["name"],
     release_date: Date.parse(expansion["releaseDate"]),
     code: code,
@@ -43,7 +43,7 @@ card_data.each do |code, expansion|
       card_text: card["text"],
       power: card["power"],
       toughness: card["loyalty"] || card["toughness"],
-      expansion_id: exp_id
+      expansion_id: exp.id
     )
   end
 end
