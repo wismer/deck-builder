@@ -1,3 +1,22 @@
+// Should the card filtering happen at the parent node, DeckBuilder, by filtering everytime it gets rendered?
+// It would seem to me that that is not an very efficient process to use. If, say, I remove a filter,
+// 
+
+var CardParams = function() {
+
+}
+
+CardParams.prototype = {
+  // accepts array of colors
+  byColor: function(colors, card) {
+    // return _.all(card.colors, colors);
+  },
+
+  byType: function(types, card) {
+    // return _.all(types);
+  }
+}
+
 
 // main component - parent of all
 // Expansion list is on the left, active list on the right.
@@ -6,6 +25,8 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
   getInitialState: function() {
     return { activeSets: [], inactiveSets: {} };
   },
+
+  // remove expansion from the card catalog.
 
   handleRemoveExpansion: function(selectedSet) {
     var activeSets = this.state.activeSets;
@@ -25,6 +46,8 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
     this.setState({ activeSets: activeSets, inactiveSets: inactiveSets })
   },
 
+  // add expansion to the card catalog.
+
   handleAddExpansion: function(code, year) {
     // takes the set residing in inactiveSets
     // and places it into activeSets. Then re-renders.
@@ -34,6 +57,11 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
 
     if (addedSet.cards === undefined) {
       $.getJSON("http://mtgjson.com/json/" + code + ".json", function(set){
+        // add a property of which expansion each card belongs to for future cleanup
+        _.each(set.cards, function(card){
+          debugger
+          card.expansion = code;
+        })
         // attach the "display" property to the object
         set.displaySet = true;
         // download cards, remove the set from the inactive list and add it to the active one.
@@ -43,6 +71,10 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
         this.setState({ activeSets: activeSets, inactiveSets: inactiveSets })
       }.bind(this))
     }
+  },
+
+  filterCards: function() {
+
   },
 
   // download json file for set list.
@@ -60,15 +92,17 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
 
   render: function() {
     var cardPool = [];
+    var sets = [];
 
-    Object.keys(this.state.activeSets).forEach(function(set){
+    _.each(this.state.activeSets, function(set){
+      sets.push({ name: set.name, code: set.code })
       cardPool = cardPool.concat(set.cards);
     })
 
     return (
       React.createElement("div", {id: "deck-builder"}, 
         React.createElement(InActiveExpansionList, {handleAddExpansion: this.handleAddExpansion, sets: this.state.inactiveSets}), 
-        React.createElement(Builder, {removeExpansion: this.handleRemoveExpansion, sets: this.state.activeSets})
+        React.createElement(Builder, {removeExpansion: this.handleRemoveExpansion, sets: sets, cards: cardPool})
       )
     )
   }
@@ -78,6 +112,34 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
 // most interactivity happens here. Lots of events to handle...
 
 var Builder = React.createClass({displayName: 'Builder',
+  getInitialState: function() {
+    return {
+      filteredCards: [],
+      byColor: {
+        red: false,
+        blue: false,
+        green: false,
+        artifact: false,
+        land: false,
+        black: false,
+        white: false
+      },
+
+      byType: {
+        artifact: false,
+        creature: false,
+        enchantment: false,
+        sorcery: false,
+        instant: false,
+        land: false
+      }
+    }
+  },
+
+  componentWillReceiveProps: function(sets) {
+    // debugger
+  },
+
   render: function() {
     var cards = [];
 
@@ -119,16 +181,55 @@ var ControlPanel = React.createClass({displayName: 'ControlPanel',
   }
 })
 
+var CardFilter = React.createClass({displayName: 'CardFilter',
+  render: function() {
+    return (
+      React.createElement("div", null)
+    )
+  }
+})
+
 
 var CardCatalog = React.createClass({displayName: 'CardCatalog',
   getInitialState: function() {
-    return {
+    return { activeCard: {} };
+  },
 
-    }
+  showCard: function(card, e) {
+    e.preventDefault();
+    this.setState({ activeCard: card })
   },
 
   render: function() {
-    return ( React.createElement("div", null) )
+    var activeCard = this.state.activeCard;
+    var self = this;
+    var cardList = this.props.cards.map(function(card){
+      var isActive = activeCard.multiverseid === card.multiverseid ? "card active" : "card";
+      return (
+        React.createElement("div", {className: isActive, key: card.multiverseid}, React.createElement("a", {href: "#", onClick: self.showCard.bind(null, card)}, card.name))
+      )
+    })
+
+    return (
+      React.createElement("div", {id: "card-catalog"}, 
+        React.createElement("div", {id: "filter-nav"}, 
+          React.createElement(CardFilter, React.__spread({type: "color", filterChange: this.handleFilterChange},  this.state.byColor)), 
+          React.createElement(CardFilter, React.__spread({type: "type", filterChange: this.handleFilterChange},  this.state.byType))
+        ), 
+
+        React.createElement("div", {id: "card-list"}, 
+          cardList
+        ), 
+
+        React.createElement(ActiveCard, React.__spread({},  this.state.activeCard))
+      )
+    )
+  }
+})
+
+var ActiveCard = React.createClass({displayName: 'ActiveCard',
+  render: function() {
+    return React.createElement("div", null)
   }
 })
 

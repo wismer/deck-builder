@@ -10,3 +10,15 @@
     height: 20px;
   }
 }
+
+#card-list {
+  .card {
+    background-color: "white";
+    color: "#200020";
+
+    &.active {
+      background-color: "#200020";
+      color: "white";
+    }
+  }
+}
