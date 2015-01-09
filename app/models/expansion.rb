@@ -2,6 +2,6 @@ class Expansion < ActiveRecord::Base
   has_many :cards
 
   def booster
-    super.split(", ")
+    super.split(", ") if super
   end
 end
