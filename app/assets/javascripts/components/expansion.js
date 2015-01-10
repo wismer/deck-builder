@@ -98,23 +98,23 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
       }
     })
 
-    var activeColors = [];
-
-    _.each(categories.colors, function(c){
-      if (c.isActive) {
-        activeColors.push(c.color)
-      }
+    var activeColors = _.filter(categories.colors, function(c){
+      return c.isActive;
     })
 
-    $.ajax({
-      url: "/cards",
-      dataType: "json",
-      type: "GET",
-      data: { filter: { expansion_id: expansions, card_colors: activeColors } },
-      success: function(cards) {
-        this.setState({ cardPool: cards, categories: categories })
-      }.bind(this)
-    })
+    if (activeColors.length === 0) {
+      this.setState({ cardPool: [], categories: categories })
+    } else {
+      $.ajax({
+        url: "/cards",
+        dataType: "json",
+        type: "GET",
+        data: { filter: { expansion_id: expansions, card_colors: activeColors } },
+        success: function(cards) {
+          this.setState({ cardPool: cards, categories: categories })
+        }.bind(this)
+      })
+    }
   },
 
   render: function() {
