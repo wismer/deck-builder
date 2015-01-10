@@ -6,6 +6,8 @@
 var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
   getInitialState: function() {
     return {
+      draftMode: false,
+      activeCard: {},
       activeSets: [],
       inactiveSets: {},
       cardPool: [],
@@ -100,7 +102,8 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
 
     var activeColors = _.filter(categories.colors, function(c){
       return c.isActive;
-    })
+    }).map(function(c){ return c.color })
+
 
     if (activeColors.length === 0) {
       this.setState({ cardPool: [], categories: categories })
@@ -117,11 +120,36 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
     }
   },
 
+  handleDraftMode: function(e) {
+    var activeSets = this.state.activeSets,
+        inactiveSets = this.state.inactiveSets
+
+    _.each(activeSets, function(set){
+      inactiveSets[set.code] = set;
+    })
+
+    _.keys(inactiveSets, function(set){
+      if (!set.booster) {
+        delete inactiveSets[set.code]
+      }
+    })
+
+    this.setState({ draftMode: e.target.checked, inactiveSets: inactiveSets, activeSets: [], cardPool: [] })
+  },
+
+  handleActiveCard: function(card, e) {
+    e.preventDefault();
+    this.setState({ activeCard: card })
+  },
+
   render: function() {
     var categories = this.state.categories;
 
     return (
       React.createElement("div", {id: "deck-builder"}, 
+        React.createElement("div", {id: "draft-mode"}, 
+          "draft mode: ", React.createElement("input", {type: "checkbox", value: "draft", onChange: this.handleDraftMode})
+        ), 
         React.createElement(InActiveExpansionList, {handleAddExpansion: this.handleAddExpansion, sets: this.state.inactiveSets}), 
         React.createElement(Builder, null, 
           React.createElement(ControlPanel, null, 
@@ -132,7 +160,8 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
             )
           ), 
 
-          React.createElement(CardList, {cards: this.state.cardPool})
+          React.createElement(CardList, {onClick: this.handleActiveCard, cards: this.state.cardPool}), 
+          React.createElement(ActiveCard, React.__spread({},  this.state.activeCard))
         )
       )
     )
@@ -141,8 +170,9 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
 
 var CardList = React.createClass({displayName: 'CardList',
   render: function() {
+    var self = this;
     var cards = this.props.cards.map(function(card){
-      return React.createElement("li", null, React.createElement("a", {href: "#"}, card.name))
+      return React.createElement("li", null, React.createElement("a", {key: card.multiverseid, onClick: self.props.onClick.bind(null, card), href: "#"}, card.name))
     })
 
     return (
@@ -172,8 +202,10 @@ var ControlPanel = React.createClass({displayName: 'ControlPanel',
   render: function() {
     return (
       React.createElement("div", {id: "control-panel"}, 
-        this.props.children
-
+        React.createElement("h5", null, "filter options"), 
+        React.createElement("div", {id: "filter-options"}, 
+          this.props.children
+        )
       )
     )
   }
@@ -228,7 +260,10 @@ var CardCatalog = React.createClass({displayName: 'CardCatalog',
 
 var ActiveCard = React.createClass({displayName: 'ActiveCard',
   render: function() {
-    return React.createElement("div", null)
+    var cardImg = this.props.id ? React.createElement("img", {src: "http://mtgimage.com/multiverseid/" + this.props.id + ".jpg"}) : ""
+    return (
+      React.createElement("div", null, cardImg)
+    )
   }
 })
 

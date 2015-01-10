@@ -6,6 +6,8 @@
 var DeckBuilder = React.createClass({
   getInitialState: function() {
     return {
+      draftMode: false,
+      activeCard: {},
       activeSets: [],
       inactiveSets: {},
       cardPool: [],
@@ -100,7 +102,8 @@ var DeckBuilder = React.createClass({
 
     var activeColors = _.filter(categories.colors, function(c){
       return c.isActive;
-    })
+    }).map(function(c){ return c.color })
+
 
     if (activeColors.length === 0) {
       this.setState({ cardPool: [], categories: categories })
@@ -117,11 +120,36 @@ var DeckBuilder = React.createClass({
     }
   },
 
+  handleDraftMode: function(e) {
+    var activeSets = this.state.activeSets,
+        inactiveSets = this.state.inactiveSets
+
+    _.each(activeSets, function(set){
+      inactiveSets[set.code] = set;
+    })
+
+    _.keys(inactiveSets, function(set){
+      if (!set.booster) {
+        delete inactiveSets[set.code]
+      }
+    })
+
+    this.setState({ draftMode: e.target.checked, inactiveSets: inactiveSets, activeSets: [], cardPool: [] })
+  },
+
+  handleActiveCard: function(card, e) {
+    e.preventDefault();
+    this.setState({ activeCard: card })
+  },
+
   render: function() {
     var categories = this.state.categories;
 
     return (
       <div id='deck-builder'>
+        <div id='draft-mode'>
+          draft mode: <input type='checkbox' value='draft' onChange={this.handleDraftMode} />
+        </div>
         <InActiveExpansionList handleAddExpansion={this.handleAddExpansion} sets={this.state.inactiveSets} />
         <Builder>
           <ControlPanel>
@@ -132,7 +160,8 @@ var DeckBuilder = React.createClass({
             />
           </ControlPanel>
 
-          <CardList cards={this.state.cardPool} />
+          <CardList onClick={this.handleActiveCard} cards={this.state.cardPool} />
+          <ActiveCard {...this.state.activeCard} />
         </Builder>
       </div>
     )
@@ -141,8 +170,9 @@ var DeckBuilder = React.createClass({
 
 var CardList = React.createClass({
   render: function() {
+    var self = this;
     var cards = this.props.cards.map(function(card){
-      return <li><a href="#">{card.name}</a></li>
+      return <li><a key={card.multiverseid} onClick={self.props.onClick.bind(null, card)}href="#">{card.name}</a></li>
     })
 
     return (
@@ -172,8 +202,10 @@ var ControlPanel = React.createClass({
   render: function() {
     return (
       <div id='control-panel'>
-        {this.props.children}
-
+        <h5>filter options</h5>
+        <div id='filter-options'>
+          {this.props.children}
+        </div>
       </div>
     )
   }
@@ -228,7 +260,10 @@ var CardCatalog = React.createClass({
 
 var ActiveCard = React.createClass({
   render: function() {
-    return <div></div>
+    var cardImg = this.props.id ? <img src={"http://mtgimage.com/multiverseid/" + this.props.id + ".jpg"}/> : ""
+    return (
+      <div>{cardImg}</div>
+    )
   }
 })
 
