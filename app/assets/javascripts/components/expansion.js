@@ -8,183 +8,149 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
     return {
       draftMode: false,
       activeCard: {},
-      activeSets: [],
-      inactiveSets: {},
-      cardPool: [],
-      categories: {
-        colors: [
-          { color: "Red", isActive: false },
-          { color: "Green", isActive: false },
-          { color: "Blue", isActive: false },
-          { color: "White", isActive: false },
-          { color: "Black", isActive: false },
-          { color: "Multi", isActive: false }
-        ]
-      }
+      expansions: [],
+      cardPool: []
     };
   },
 
-  // remove expansion from the card catalog.
-
-  handleRemoveExpansion: function(selectedSet) {
-    var activeSets = this.state.activeSets;
-    var inactiveSets = this.state.inactiveSets;
-    var removedSet;
-
-    activeSets = _.filter(activeSets, function(set){
-      if (set.code === selectedSet.code) {
-        removedSet = set;
-        return false;
-      } else {
-        return true;
-      }
-    })
-
-    inactiveSets[selectedSet.code] = removedSet;
-    this.setState({ activeSets: activeSets, inactiveSets: inactiveSets })
-  },
-
-  // add expansion to the card catalog.
-
-  handleAddExpansion: function(code, year) {
-    // takes the set residing in inactiveSets
-    // and places it into activeSets. Then re-renders.
-    var inactiveSets = this.state.inactiveSets;
-    var activeSets = this.state.activeSets;
-    var addedSet = inactiveSets[code];
-
-    if (addedSet.cards === undefined) {
-      $.getJSON("/expansions/expansion/" + code + ".json", function(set){
-        // add a property of which expansion each card belongs to for future cleanup
-        _.each(set.cards, function(card){
-          card.expansion = code;
-        })
-        // attach the "display" property to the object
-        set.displaySet = true;
-        // download cards, remove the set from the inactive list and add it to the active one.
-        addedSet = set;
-        delete inactiveSets[code];
-        activeSets.push(addedSet);
-        this.setState({ activeSets: activeSets, inactiveSets: inactiveSets })
-      }.bind(this))
-    }
-  },
-
-  filterCards: function() {
-
-  },
-
-  // download json file for set list.
-
   componentWillMount: function() {
-    var inactiveSets = this.state.inactiveSets;
+    var expansions = this.state.expansions;
     $.getJSON("/expansions/list", function(list){
-      list.forEach(function(set){
-        inactiveSets[set.code] = set;
+      list.forEach(function(expansion, index){
+        expansion.releaseYear = new Date(expansion.release_date).getFullYear();
+        expansion.selected = false;
+        expansion.number = index;
+        expansions.push(expansion);
       })
 
-      this.setState({ inactiveSets: inactiveSets })
+      this.setState({ expansions: expansions })
     }.bind(this))
   },
 
-  handleFilterChange: function(category, subcategory, e) {
-    var categories = this.state.categories;
-    var checked = e.target.checked;
-    var expansions = this.state.activeSets.map(function(set){
-      return set.id;
-    })
+  handleFilterChange: function(e, colors) {
+    var expansions = this.state.expansions.filter(function(expansion){
+      return expansion.selected;
+    }).map(function(c){ return c.id })
 
-    _.each(categories[category], function(subcat, index) {
-      if (subcat.color === subcategory.color) {
-        categories[category][index].isActive = checked;
-      }
-    })
-
-    var activeColors = _.filter(categories.colors, function(c){
-      return c.isActive;
-    }).map(function(c){ return c.color })
-
-
-    if (activeColors.length === 0) {
-      this.setState({ cardPool: [], categories: categories })
-    } else {
+    if (colors.length > 0) {
       $.ajax({
         url: "/cards",
         dataType: "json",
-        type: "GET",
-        data: { filter: { expansion_id: expansions, card_colors: activeColors } },
+        data: { filter: { expansion_id: expansions, card_colors: colors } },
         success: function(cards) {
-          this.setState({ cardPool: cards, categories: categories })
+          this.setState({ cardPool: cards })
         }.bind(this)
       })
+    } else {
+      this.setState({ cardPool: [] })
     }
   },
 
-  handleDraftMode: function(e) {
-    var activeSets = this.state.activeSets,
-        inactiveSets = this.state.inactiveSets
-
-    _.each(activeSets, function(set){
-      inactiveSets[set.code] = set;
-    })
-
-    _.keys(inactiveSets, function(set){
-      if (!set.booster) {
-        delete inactiveSets[set.code]
-      }
-    })
-
-    this.setState({ draftMode: e.target.checked, inactiveSets: inactiveSets, activeSets: [], cardPool: [] })
-  },
-
-  handleActiveCard: function(card, e) {
-    e.preventDefault();
-    this.setState({ activeCard: card })
+  handleExpansionSelection: function(index, e) {
+    var expansions = this.state.expansions;
+    var expansion = expansions[index];
+    expansion.selected = !expansion.selected;
+    this.setState({ expansions: expansions })
   },
 
   render: function() {
-    var categories = this.state.categories;
+    var inactive = [],
+        active = [],
+        self = this;
+
+    _.each(this.state.expansions, function(expansion){
+      if (expansion.selected) {
+        active.push(expansion)
+      } else {
+        inactive.push(expansion)
+      }
+    })
 
     return (
       React.createElement("div", {id: "deck-builder"}, 
-        React.createElement("div", {id: "draft-mode"}, 
-          "draft mode: ", React.createElement("input", {type: "checkbox", value: "draft", onChange: this.handleDraftMode})
-        ), 
-        React.createElement(InActiveExpansionList, {handleAddExpansion: this.handleAddExpansion, sets: this.state.inactiveSets}), 
+        React.createElement(ExpansionList, {list: this.state.expansions, expansionSelection: this.handleExpansionSelection}), 
         React.createElement(Builder, null, 
-          React.createElement(ControlPanel, null, 
-            React.createElement(CardFilter, {
-              onChange: this.handleFilterChange, 
-              filterBy: "colors", 
-              categories: categories.colors}
-            )
-          ), 
-
-          React.createElement(CardList, {onClick: this.handleActiveCard, cards: this.state.cardPool}), 
-          React.createElement(ActiveCard, React.__spread({},  this.state.activeCard))
+          React.createElement(ControlPanel, {onChange: this.handleFilterChange}), 
+          React.createElement(CardList, {cards: this.state.cardPool})
         )
       )
     )
   }
 })
 
-var CardList = React.createClass({displayName: 'CardList',
+var ExpansionList = React.createClass({displayName: 'ExpansionList',
+  getDefaultProps: function() {
+    var years = [];
+    for (var year = 1993; year < 2015; year++) {
+      years.push(year);
+    }
+    return { years: years };
+  },
+
   render: function() {
-    var self = this;
-    var cards = this.props.cards.map(function(card){
-      return React.createElement("li", null, React.createElement("a", {key: card.multiverseid, onClick: self.props.onClick.bind(null, card), href: "#"}, card.name))
+    var sortedByYear = {},
+        list = this.props.list,
+        years = this.props.years,
+        self = this;
+
+
+    _.each(years, function(year){
+      sortedByYear[year] = list.filter(function(expansion){
+        return expansion.releaseYear === year;
+      })
+    })
+
+    var expansionsByYear = _.map(_.keys(sortedByYear), function(year){
+      return (
+        React.createElement(ExpansionYear, {year: year, expansionSelection: self.props.expansionSelection, expansions: sortedByYear[year], key: year})
+      )
     })
 
     return (
-      React.createElement("div", {id: "card-list"}, 
-        cards
+      React.createElement("div", {id: "expansion-list"}, 
+        expansionsByYear
       )
     )
   }
 })
 
-// actively selected sets are pooled into the builder component.
-// most interactivity happens here. Lots of events to handle...
+var ExpansionYear = React.createClass({displayName: 'ExpansionYear',
+  getInitialState: function() {
+    return { showExpansions: false };
+  },
+
+  toggleSets: function() {
+    this.setState({ showExpansions: !this.state.showExpansions })
+  },
+
+  render: function() {
+    var self = this;
+    var expansions = this.props.expansions.map(function(set){
+      return (
+        React.createElement(Expansion, React.__spread({addExpansion: self.props.expansionSelection, key: set.code},  set))
+      )
+    })
+
+    return (
+      React.createElement("div", {className: "year-set", onMouseEnter: this.toggleSets, onMouseLeave: this.toggleSets}, 
+        React.createElement("h5", null, this.props.year), 
+        React.createElement("div", {className: "sets"}, 
+          this.state.showExpansions ? expansions : ""
+        )
+      )
+    )
+  }
+})
+
+
+var Expansion = React.createClass({displayName: 'Expansion',
+  render: function() {
+    var style = { backgroundColor: this.props.selected ? "#dddddd" : "#eeeeee" };
+    return (
+      React.createElement("div", {style: style, onClick: this.props.addExpansion.bind(null, this.props.number), className: "expansion"}, this.props.name)
+    )
+  }
+})
 
 var Builder = React.createClass({displayName: 'Builder',
   render: function() {
@@ -197,128 +163,49 @@ var Builder = React.createClass({displayName: 'Builder',
 })
 
 var ControlPanel = React.createClass({displayName: 'ControlPanel',
-  // shows a summary of what's been pooled by the user and the view
-  // preferences for looking at the card catalog.
+  getDefaultProps: function() {
+    return {
+      colors: ["Red", "Green", "Blue", "Black", "White"],
+      spells: ["Instant", "Enchantment", "Artifact", "Creature", "Sorcery"]
+    }
+  },
+
+  handleFilterValues: function(e) {
+    var self = this;
+    var colors = this.props.colors.filter(function(color){
+      return self.refs[color].getDOMNode().checked;
+    })
+
+    this.props.onChange(e, colors);
+  },
+
   render: function() {
+    var colors = this.props.colors.map(function(color){
+      return React.createElement("input", {key: color, type: "checkbox", value: color, ref: color})
+    })
+
     return (
       React.createElement("div", {id: "control-panel"}, 
         React.createElement("h5", null, "filter options"), 
         React.createElement("div", {id: "filter-options"}, 
-          this.props.children
-        )
-      )
-    )
-  }
-})
-// mouse over a filter type and will reveal the options to pick and filter by.
-var CardFilter = React.createClass({displayName: 'CardFilter',
-  getInitialState: function() {
-    return { displaySubMenu: false };
-  },
-
-  subMenu: function() {
-    this.setState({ displaySubMenu: !this.state.displaySubMenu })
-  },
-
-  render: function() {
-    var self = this;
-    var options = this.props.categories.map(function(subcategory){
-      return (
-        React.createElement("div", {className: "sub-option"}, 
-          React.createElement("input", {
-            onChange: self.props.onChange.bind(null, self.props.filterBy, subcategory), 
-            key: subcategory.color, type: "checkbox", value: subcategory.color, 
-            checked: subcategory.isActive}
-          ), 
-            subcategory.color
-        )
-      )
-    })
-
-    var active = "filter" + (this.state.displaySubMenu ? " active" : "");
-    return (
-      React.createElement("div", {className: "card-filter", onMouseEnter: this.subMenu, onMouseLeave: this.subMenu}, 
-        this.props.filterBy, 
-        React.createElement("div", {className: active}, 
-          options
+          React.createElement("form", {onChange: this.handleFilterValues, ref: "zeeInput"}, 
+            colors
+          )
         )
       )
     )
   }
 })
 
-
-var CardCatalog = React.createClass({displayName: 'CardCatalog',
+var CardList = React.createClass({displayName: 'CardList',
   render: function() {
-
-    return (
-      React.createElement("div", {id: "card-catalog"}
-      )
-    )
-  }
-})
-
-var ActiveCard = React.createClass({displayName: 'ActiveCard',
-  render: function() {
-    var cardImg = this.props.id ? React.createElement("img", {src: "http://mtgimage.com/multiverseid/" + this.props.id + ".jpg"}) : ""
-    return (
-      React.createElement("div", null, cardImg)
-    )
-  }
-})
-
-var InActiveExpansionList = React.createClass({displayName: 'InActiveExpansionList',
-  render: function() {
-    var self = this;
-    var years = {};
-    var sets = this.props.sets;
-
-    Object.keys(sets).forEach(function(code){
-      var expansion = sets[code];
-      var year = new Date(expansion.release_date).getFullYear();
-
-      if (years[year]) {
-        years[year].push(expansion);
-      } else {
-        years[year] = [expansion];
-      }
-    })
-
-    var expansions = Object.keys(years).map(function(year){
-      var setsOfYear = years[year];
-      return React.createElement(ExpansionYear, {year: year, handleAddExpansion: self.props.handleAddExpansion, key: year, sets: setsOfYear})
-    })
-
-    return (
-      React.createElement("div", {id: "expansion-list"}, 
-        expansions
-      )
-    )
-  }
-})
-
-
-var ExpansionYear = React.createClass({displayName: 'ExpansionYear',
-  render: function() {
-    var self = this;
-    var expansions = this.props.sets.map(function(set){
-      return (
-        React.createElement(Expansion, React.__spread({addExpansion: self.props.handleAddExpansion, key: set.code},  set))
-      )
+    var cards = this.props.cards.map(function(card){
+      return React.createElement("li", null, React.createElement("a", {href: "#", onClick: self.props.addCard.bind(null, card)}, card.name))
     })
     return (
-      React.createElement("div", {className: "year-set"}, 
-        React.createElement("h5", null, this.props.year), 
-        expansions
+      React.createElement("div", {id: "card-list"}, 
+        cards
       )
-    )
-  }
-})
-
-var Expansion = React.createClass({displayName: 'Expansion',
-  render: function() {
-    return (
-      React.createElement("div", {onClick: this.props.addExpansion.bind(null, this.props.code, this.props.releaseDate), className: "expansion"}, this.props.name)
     )
   }
 })
