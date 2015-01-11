@@ -18,18 +18,20 @@ file = File.open("./AllSets.json")
 
 card_data = JSON.load(file)
 card_data.each do |code, expansion|
-  exp = Expansion.create(
-    name: expansion["name"],
-    release_date: Date.parse(expansion["releaseDate"]),
-    code: code,
-    booster: convert_type(expansion["booster"])
-  )
+  if expansion["booster"]
+    exp = Expansion.create(
+      name: expansion["name"],
+      release_date: Date.parse(expansion["releaseDate"]),
+      code: code,
+      booster: convert_type(expansion["booster"])
+    )
 
-  cards = expansion["cards"]
+    cards = expansion["cards"]
 
-  cards.each do |card|
-    card["expansion_id"] = exp
-    @all_cards[card["name"]] = card
+    cards.each do |card|
+      card['expansion_id'] = exp.id
+      @all_cards[card["name"]] = card
+    end
   end
 end
 

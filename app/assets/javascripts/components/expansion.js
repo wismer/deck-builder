@@ -9,7 +9,8 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
       draftMode: false,
       activeCard: {},
       expansions: [],
-      cardPool: []
+      cardPool: [],
+      savedCards: {}
     };
   },
 
@@ -53,6 +54,27 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
     this.setState({ expansions: expansions })
   },
 
+  handleRemoveCard: function(card, e) {
+    var cards = this.state.savedCards;
+    cards[card.id].count -= 1;
+    if (cards[card.id].count === 0 ) {
+      delete cards[card.id];
+    }
+
+    this.setState({ savedCards: cards })
+  },
+
+  handleAddCard: function(card, e) {
+    e.preventDefault();
+    var cards = this.state.savedCards;
+    if (cards[card.id]) {
+      cards[card.id].count += 1;
+    } else {
+      cards[card.id] = { count: 1, attributes: card }
+    }
+    this.setState({ savedCards: cards })
+  },
+
   render: function() {
     var inactive = [],
         active = [],
@@ -70,8 +92,9 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
       React.createElement("div", {id: "deck-builder"}, 
         React.createElement(ExpansionList, {list: this.state.expansions, expansionSelection: this.handleExpansionSelection}), 
         React.createElement(Builder, null, 
-          React.createElement(ControlPanel, {onChange: this.handleFilterChange}), 
-          React.createElement(CardList, {cards: this.state.cardPool})
+          React.createElement(ControlPanel, {onChange: this.handleFilterChange, loadedSets: active}), 
+          React.createElement(CardList, {cards: this.state.cardPool, addCard: this.handleAddCard}), 
+          React.createElement(UserPanel, {cards: this.state.savedCards, removeCard: this.handleRemoveCard})
         )
       )
     )
@@ -188,7 +211,7 @@ var ControlPanel = React.createClass({displayName: 'ControlPanel',
       React.createElement("div", {id: "control-panel"}, 
         React.createElement("h5", null, "filter options"), 
         React.createElement("div", {id: "filter-options"}, 
-          React.createElement("form", {onChange: this.handleFilterValues, ref: "zeeInput"}, 
+          React.createElement("form", {onChange: this.handleFilterValues}, 
             colors
           )
         )
@@ -199,11 +222,33 @@ var ControlPanel = React.createClass({displayName: 'ControlPanel',
 
 var CardList = React.createClass({displayName: 'CardList',
   render: function() {
+    var self = this;
     var cards = this.props.cards.map(function(card){
-      return React.createElement("li", null, React.createElement("a", {href: "#", onClick: self.props.addCard.bind(null, card)}, card.name))
+      return React.createElement("li", {key: card.id}, React.createElement("a", {href: "#", onClick: self.props.addCard.bind(null, card)}, card.name))
     })
     return (
       React.createElement("div", {id: "card-list"}, 
+        cards
+      )
+    )
+  }
+})
+
+var UserPanel = React.createClass({displayName: 'UserPanel',
+  render: function() {
+    var self = this;
+    var savedCards = this.props.cards;
+    var cards = _.keys(this.props.cards).map(function(id){
+      var count = savedCards[id].count;
+      var attributes = savedCards[id].attributes;
+
+      return React.createElement("li", {key: id}, React.createElement("a", {href: "#", onClick: self.props.removeCard.bind(null, attributes)}, count, "x: ", attributes.name))
+    })
+
+    return (
+      React.createElement("div", {id: "user-cards"}, 
+        React.createElement("div", {id: "save-cards"}
+        ), 
         cards
       )
     )

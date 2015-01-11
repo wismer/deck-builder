@@ -10,6 +10,18 @@
   }
 }
 
+#active-sets {
+  padding-left: 100px;
+
+  #card-list {
+    float: left;
+  }
+
+  #user-cards {
+    float: right;
+  }
+}
+
 #card-list {
   .card {
     background-color: "white";

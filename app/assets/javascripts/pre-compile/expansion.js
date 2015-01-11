@@ -9,7 +9,8 @@ var DeckBuilder = React.createClass({
       draftMode: false,
       activeCard: {},
       expansions: [],
-      cardPool: []
+      cardPool: [],
+      savedCards: {}
     };
   },
 
@@ -53,6 +54,27 @@ var DeckBuilder = React.createClass({
     this.setState({ expansions: expansions })
   },
 
+  handleRemoveCard: function(card, e) {
+    var cards = this.state.savedCards;
+    cards[card.id].count -= 1;
+    if (cards[card.id].count === 0 ) {
+      delete cards[card.id];
+    }
+
+    this.setState({ savedCards: cards })
+  },
+
+  handleAddCard: function(card, e) {
+    e.preventDefault();
+    var cards = this.state.savedCards;
+    if (cards[card.id]) {
+      cards[card.id].count += 1;
+    } else {
+      cards[card.id] = { count: 1, attributes: card }
+    }
+    this.setState({ savedCards: cards })
+  },
+
   render: function() {
     var inactive = [],
         active = [],
@@ -70,8 +92,9 @@ var DeckBuilder = React.createClass({
       <div id='deck-builder'>
         <ExpansionList list={this.state.expansions} expansionSelection={this.handleExpansionSelection} />
         <Builder>
-          <ControlPanel onChange={this.handleFilterChange} />
-          <CardList cards={this.state.cardPool} />
+          <ControlPanel onChange={this.handleFilterChange} loadedSets={active} />
+          <CardList cards={this.state.cardPool} addCard={this.handleAddCard} />
+          <UserPanel cards={this.state.savedCards} removeCard={this.handleRemoveCard}/>
         </Builder>
       </div>
     )
@@ -188,7 +211,7 @@ var ControlPanel = React.createClass({
       <div id='control-panel'>
         <h5>filter options</h5>
         <div id='filter-options'>
-          <form onChange={this.handleFilterValues} ref='zeeInput'>
+          <form onChange={this.handleFilterValues}>
             {colors}
           </form>
         </div>
@@ -199,11 +222,33 @@ var ControlPanel = React.createClass({
 
 var CardList = React.createClass({
   render: function() {
+    var self = this;
     var cards = this.props.cards.map(function(card){
-      return <li><a href="#" onClick={self.props.addCard.bind(null, card)}>{card.name}</a></li>
+      return <li key={card.id}><a href="#" onClick={self.props.addCard.bind(null, card)}>{card.name}</a></li>
     })
     return (
       <div id='card-list'>
+        {cards}
+      </div>
+    )
+  }
+})
+
+var UserPanel = React.createClass({
+  render: function() {
+    var self = this;
+    var savedCards = this.props.cards;
+    var cards = _.keys(this.props.cards).map(function(id){
+      var count = savedCards[id].count;
+      var attributes = savedCards[id].attributes;
+
+      return <li key={id}><a href="#" onClick={self.props.removeCard.bind(null, attributes)}>{count}x: {attributes.name}</a></li>
+    })
+
+    return (
+      <div id='user-cards'>
+        <div id='save-cards'>
+        </div>
         {cards}
       </div>
     )

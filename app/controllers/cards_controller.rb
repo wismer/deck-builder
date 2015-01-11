@@ -1,6 +1,6 @@
 class CardsController < ApplicationController
   def search
-    @cards = Card.where(query_params)
+    @cards = Card.where(query_params).sort_by { |card| card.name }
 
     respond_to do |format|
       format.json { render json: @cards }
