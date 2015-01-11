@@ -14,6 +14,7 @@ def convert_type(array)
 end
 
 file = File.open("./AllSets.json")
+@all_cards = {}
 
 card_data = JSON.load(file)
 card_data.each do |code, expansion|
@@ -27,23 +28,29 @@ card_data.each do |code, expansion|
   cards = expansion["cards"]
 
   cards.each do |card|
-    Card.create(
-      name: card["name"],
-      cmc: card["cmc"],
-      flavor: card["flavor"],
-      image_name: card["imageName"],
-      mana_cost: card["manaCost"],
-      multiverseid: card["multiverseid"],
-      card_colors: convert_type(card["colors"]),
-      card_type_desc: card["type"],
-      supertypes: convert_type(card["supertypes"]),
-      card_type: convert_type(card["types"]),
-      card_subtype: convert_type(card["subtypes"]),
-      rarity: card["rarity"],
-      card_text: card["text"],
-      power: card["power"],
-      toughness: card["loyalty"] || card["toughness"],
-      expansion_id: exp.id
-    )
+    card["expansion_id"] = exp
+    @all_cards[card["name"]] = card
   end
+end
+
+
+@all_cards.each do |name,card|
+  Card.create(
+    name: name,
+    cmc: card["cmc"],
+    flavor: card["flavor"],
+    image_name: card["imageName"],
+    mana_cost: card["manaCost"],
+    multiverseid: card["multiverseid"],
+    card_colors: convert_type(card["colors"]),
+    card_type_desc: card["type"],
+    supertypes: convert_type(card["supertypes"]),
+    card_type: convert_type(card["types"]),
+    card_subtype: convert_type(card["subtypes"]),
+    rarity: card["rarity"],
+    card_text: card["text"],
+    power: card["power"],
+    toughness: card["loyalty"] || card["toughness"],
+    expansion_id: card["expansion_id"]
+  )
 end
