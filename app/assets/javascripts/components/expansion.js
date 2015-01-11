@@ -75,6 +75,10 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
     this.setState({ savedCards: cards })
   },
 
+  handleActiveCard: function(card, e) {
+    this.setState({ activeCard: card })
+  },
+
   render: function() {
     var inactive = [],
         active = [],
@@ -88,13 +92,15 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
       }
     })
 
+    var activeCard = this.state.activeCard.name ? React.createElement(ActiveCard, React.__spread({},  this.state.activeCard)) : ""
     return (
       React.createElement("div", {id: "deck-builder"}, 
         React.createElement(ExpansionList, {list: this.state.expansions, expansionSelection: this.handleExpansionSelection}), 
         React.createElement(Builder, null, 
           React.createElement(ControlPanel, {onChange: this.handleFilterChange, loadedSets: active}), 
-          React.createElement(CardList, {cards: this.state.cardPool, addCard: this.handleAddCard}), 
-          React.createElement(UserPanel, {cards: this.state.savedCards, removeCard: this.handleRemoveCard})
+          React.createElement(CardList, {onMouseOver: this.handleActiveCard, cards: this.state.cardPool, addCard: this.handleAddCard}), 
+          React.createElement(UserPanel, {cards: this.state.savedCards, removeCard: this.handleRemoveCard}), 
+          activeCard
         )
       )
     )
@@ -115,7 +121,6 @@ var ExpansionList = React.createClass({displayName: 'ExpansionList',
         list = this.props.list,
         years = this.props.years,
         self = this;
-
 
     _.each(years, function(year){
       sortedByYear[year] = list.filter(function(expansion){
@@ -224,7 +229,7 @@ var CardList = React.createClass({displayName: 'CardList',
   render: function() {
     var self = this;
     var cards = this.props.cards.map(function(card){
-      return React.createElement("li", {key: card.id}, React.createElement("a", {href: "#", onClick: self.props.addCard.bind(null, card)}, card.name))
+      return React.createElement("li", {key: card.id, onMouseOver: self.props.onMouseOver.bind(null, card)}, React.createElement("a", {href: "#", onClick: self.props.addCard.bind(null, card)}, card.name))
     })
     return (
       React.createElement("div", {id: "card-list"}, 
@@ -247,9 +252,26 @@ var UserPanel = React.createClass({displayName: 'UserPanel',
 
     return (
       React.createElement("div", {id: "user-cards"}, 
+        React.createElement("div", null, 
+          React.createElement("h5", null, "Summary")
+        ), 
         React.createElement("div", {id: "save-cards"}
         ), 
         cards
+      )
+    )
+  }
+})
+
+var ActiveCard = React.createClass({displayName: 'ActiveCard',
+  render: function() {
+    var imgTag = "http://mtgimage.com/card/" + this.props.image_name + ".jpg";
+    return (
+      React.createElement("div", null, 
+        React.createElement("h5", null, this.props.name), 
+        React.createElement("div", {className: "img-tag"}, 
+          React.createElement("img", {src: imgTag, height: "225", width: "150"})
+        )
       )
     )
   }

@@ -75,6 +75,10 @@ var DeckBuilder = React.createClass({
     this.setState({ savedCards: cards })
   },
 
+  handleActiveCard: function(card, e) {
+    this.setState({ activeCard: card })
+  },
+
   render: function() {
     var inactive = [],
         active = [],
@@ -88,13 +92,15 @@ var DeckBuilder = React.createClass({
       }
     })
 
+    var activeCard = this.state.activeCard.name ? <ActiveCard {...this.state.activeCard} /> : ""
     return (
       <div id='deck-builder'>
         <ExpansionList list={this.state.expansions} expansionSelection={this.handleExpansionSelection} />
         <Builder>
           <ControlPanel onChange={this.handleFilterChange} loadedSets={active} />
-          <CardList cards={this.state.cardPool} addCard={this.handleAddCard} />
+          <CardList onMouseOver={this.handleActiveCard} cards={this.state.cardPool} addCard={this.handleAddCard} />
           <UserPanel cards={this.state.savedCards} removeCard={this.handleRemoveCard}/>
+          {activeCard}
         </Builder>
       </div>
     )
@@ -115,7 +121,6 @@ var ExpansionList = React.createClass({
         list = this.props.list,
         years = this.props.years,
         self = this;
-
 
     _.each(years, function(year){
       sortedByYear[year] = list.filter(function(expansion){
@@ -224,7 +229,7 @@ var CardList = React.createClass({
   render: function() {
     var self = this;
     var cards = this.props.cards.map(function(card){
-      return <li key={card.id}><a href="#" onClick={self.props.addCard.bind(null, card)}>{card.name}</a></li>
+      return <li key={card.id} onMouseOver={self.props.onMouseOver.bind(null, card)}><a href="#" onClick={self.props.addCard.bind(null, card)}>{card.name}</a></li>
     })
     return (
       <div id='card-list'>
@@ -247,9 +252,26 @@ var UserPanel = React.createClass({
 
     return (
       <div id='user-cards'>
+        <div>
+          <h5>Summary</h5>
+        </div>
         <div id='save-cards'>
         </div>
         {cards}
+      </div>
+    )
+  }
+})
+
+var ActiveCard = React.createClass({
+  render: function() {
+    var imgTag = "http://mtgimage.com/card/" + this.props.image_name + ".jpg";
+    return (
+      <div>
+        <h5>{this.props.name}</h5>
+        <div className="img-tag">
+          <img src={imgTag} height="225" width="150" />
+        </div>
       </div>
     )
   }
