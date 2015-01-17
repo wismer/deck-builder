@@ -43,3 +43,18 @@
     }
   }
 }
+
+.filter-set {
+
+  img:hover {
+    opacity: 1.0;
+  }
+}
+
+#card-list {
+  width: 200px;
+
+  .card {
+    padding: 5px;
+  }
+}

@@ -10,8 +10,9 @@ Rails.application.routes.draw do
 
   get 'expansions/list' => 'expansions#set_list'
   get 'expansions/expansion/:code' => 'expansions#code'
-
-  get 'cards' => 'cards#search'
+  get 'expansions/card_filter' => 'expansions#filter_cards'
+  get 'cards/query' => 'cards#list'
+  get 'cards/filtered' => 'cards#filtered'
   # Example of regular route:
   #   get 'products/:id' => 'catalog#view'
 

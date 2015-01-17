@@ -1,6 +1,16 @@
 class Expansion < ActiveRecord::Base
   has_many :cards
 
+  def self.filter_by(arg)
+    expansion = find(arg[:id]).cards.where(arg[:properties])
+
+    if arg[:not]
+      expansion = expansion.where.not(arg[:not])
+    end
+
+    expansion
+  end
+
   def draft
     return false if booster.nil?
 
