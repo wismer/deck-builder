@@ -8,6 +8,11 @@ Rails.application.routes.draw do
   # root 'welcome#index'
   root to: 'home#index'
 
+  get 'expansions/list' => 'expansions#set_list'
+  get 'expansions/expansion/:code' => 'expansions#code'
+  get 'expansions/card_filter' => 'expansions#filter_cards'
+  get 'cards/query' => 'cards#list'
+  get 'cards/filtered' => 'cards#filtered'
   # Example of regular route:
   #   get 'products/:id' => 'catalog#view'
 

@@ -4,9 +4,57 @@
 
 #expansion-list {
   float: left;
-  width: 300px;
+  width: 100px;
+  h5 {
+    margin: 0;
+  }
+}
 
-  .expansion {
-    height: 50px;
+#active-sets {
+  padding-left: 100px;
+
+  #card-list {
+    float: left;
+  }
+
+  #user-cards {
+    float: right;
+  }
+}
+
+#card-list {
+  .card {
+    background-color: "white";
+    color: "#200020";
+
+    &.active {
+      background-color: "#200020";
+      color: "white";
+    }
+  }
+}
+
+#builder {
+  .filter {
+    display: none;
+
+    &.active {
+      display: block;
+    }
+  }
+}
+
+.filter-set {
+
+  img:hover {
+    opacity: 1.0;
+  }
+}
+
+#card-list {
+  width: 200px;
+
+  .card {
+    padding: 5px;
   }
 }

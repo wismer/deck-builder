@@ -11,7 +11,39 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20150107063041) do
+ActiveRecord::Schema.define(version: 20150109004644) do
+
+  create_table "cards", force: true do |t|
+    t.string   "name"
+    t.integer  "cmc"
+    t.text     "flavor"
+    t.string   "image_name"
+    t.string   "mana_cost"
+    t.integer  "multiverseid"
+    t.string   "rarity"
+    t.string   "card_subtype"
+    t.text     "card_text"
+    t.string   "card_type_desc"
+    t.string   "card_type"
+    t.string   "card_colors"
+    t.integer  "expansion_id"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+    t.string   "supertypes"
+    t.string   "toughness"
+    t.string   "power"
+  end
+
+  add_index "cards", ["expansion_id"], name: "index_cards_on_expansion_id"
+
+  create_table "expansions", force: true do |t|
+    t.string   "name"
+    t.date     "release_date"
+    t.string   "code"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+    t.string   "booster"
+  end
 
   create_table "users", force: true do |t|
     t.string   "email",                  default: "", null: false
