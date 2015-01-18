@@ -31,4 +31,27 @@ class Card < ActiveRecord::Base
   def reform
     { isCreature: creature? }
   end
+
+  def mana_cost
+    if super
+      super.split(/[\{\}]/).select { |x| x.length > 0 }.map do |mana|
+        case mana
+        when "G"
+          "Green"
+        when "U"
+          "Blue"
+        when "W"
+          "White"
+        when "B"
+          "Black"
+        when "R"
+          "Red"
+        else
+          mana
+        end
+      end
+    else
+      []
+    end
+  end
 end
