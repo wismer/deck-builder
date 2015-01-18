@@ -2,7 +2,7 @@ var DeckBuilder = React.createClass({
   getInitialState: function() {
     return {
       expansionSelect: true,
-      codeList: [],
+      pickedCards: {},
       cards: [],
       filters: {
         colors: {
@@ -37,6 +37,18 @@ var DeckBuilder = React.createClass({
       })
       this.setState({ expansions: expansions })
     }.bind(this))
+  },
+
+  handleAddCard: function(card, e) {
+    var pickedCards = this.state.pickedCards;
+
+    if (pickedCards[card.id]) {
+      pickedCards[card.id].count += 1;
+    } else {
+      pickedCards[card.id] = card;
+      pickedCards[card.id].count = 1;
+    }
+    this.setState({ pickedCards: pickedCards })
   },
 
   handleShowHighlight: function(card, e) {
@@ -99,6 +111,13 @@ var DeckBuilder = React.createClass({
   },
 
   render: function() {
+    var pickedCards = this.state.pickedCards;
+
+    var userCards = _.keys(pickedCards).map(function(cardID){
+      var card = pickedCards[cardID];
+      return <div className='picked-card'>{card.count}x: {card.name}</div>
+    })
+
     var showExpansions = { display: this.state.expansionSelect ? "block" : "none" };
     var activeMode = { display: this.state.expansionSelect ? "none" : "block" };
     var highlightedCard = this.state.highlightedCard.name
@@ -118,13 +137,39 @@ var DeckBuilder = React.createClass({
           </ControlPanel>
 
           <CardList
+            addCard={this.handleAddCard}
             highlightCard={this.handleShowHighlight}
             removeHighlight={this.handleRemoveHighlight}
             cards={this.state.cards}
           />
 
           {highlightedCard}
+
+          <UserDeck>
+            {userCards}
+            <SaveCards />
+          </UserDeck>
         </div>
+      </div>
+    )
+  }
+})
+
+var UserDeck = React.createClass({
+  render: function() {
+    return (
+      <div id='user-deck'>
+        {this.props.children}
+      </div>
+    )
+  }
+})
+
+var SaveCards = React.createClass({
+  render: function() {
+    return (
+      <div id='save-form'>
+        <input type='button' name='save[cards]'></input>
       </div>
     )
   }
@@ -148,8 +193,8 @@ var FilterSet = React.createClass({
       var cat = { category: category, subcategory: subcategory };
 
       return (
-        <div onClick={self.props.onChange.bind(null, cat)} className="filter-set" key={subcategory}>
-          <img style={style} src={subcategory + ".png"} height='15' width='15'/>
+        <div style={{fontAlign: "center"}} onClick={self.props.onChange.bind(null, cat)} className="filter-set" key={subcategory}>
+          <img style={style} src={subcategory + ".png"} height='15' width='15'/>{subcategory}
         </div>
       )
     })
@@ -166,14 +211,22 @@ var CardList = React.createClass({
   render: function() {
     var self = this;
     var cards = this.props.cards.map(function(card){
+      var icons = card.mana_cost.map(function(color,i){
+        return <img key={i} src={color + ".png"} height="15" width="15" />
+      })
       return (
         <div
           key={card.multiverseid}
+          onClick={self.props.addCard.bind(null, card)}
           onMouseEnter={self.props.highlightCard.bind(null, card)}
           onMouseLeave={self.props.removeHighlight}
           style={{backgroundColor: card.card_colors}}
           className='card'
-        >{card.name}</div>
+        >{card.name}
+          <div className='icons'>
+            {icons}
+          </div>
+        </div>
       )
     })
 

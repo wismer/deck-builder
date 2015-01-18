@@ -2,7 +2,7 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
   getInitialState: function() {
     return {
       expansionSelect: true,
-      codeList: [],
+      pickedCards: {},
       cards: [],
       filters: {
         colors: {
@@ -37,6 +37,18 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
       })
       this.setState({ expansions: expansions })
     }.bind(this))
+  },
+
+  handleAddCard: function(card, e) {
+    var pickedCards = this.state.pickedCards;
+
+    if (pickedCards[card.id]) {
+      pickedCards[card.id].count += 1;
+    } else {
+      pickedCards[card.id] = card;
+      pickedCards[card.id].count = 1;
+    }
+    this.setState({ pickedCards: pickedCards })
   },
 
   handleShowHighlight: function(card, e) {
@@ -99,6 +111,13 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
   },
 
   render: function() {
+    var pickedCards = this.state.pickedCards;
+
+    var userCards = _.keys(pickedCards).map(function(cardID){
+      var card = pickedCards[cardID];
+      return React.createElement("div", {className: "picked-card"}, card.count, "x: ", card.name)
+    })
+
     var showExpansions = { display: this.state.expansionSelect ? "block" : "none" };
     var activeMode = { display: this.state.expansionSelect ? "none" : "block" };
     var highlightedCard = this.state.highlightedCard.name
@@ -118,13 +137,39 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
           ), 
 
           React.createElement(CardList, {
+            addCard: this.handleAddCard, 
             highlightCard: this.handleShowHighlight, 
             removeHighlight: this.handleRemoveHighlight, 
             cards: this.state.cards}
           ), 
 
-          highlightedCard
+          highlightedCard, 
+
+          React.createElement(UserDeck, null, 
+            userCards, 
+            React.createElement(SaveCards, null)
+          )
         )
+      )
+    )
+  }
+})
+
+var UserDeck = React.createClass({displayName: 'UserDeck',
+  render: function() {
+    return (
+      React.createElement("div", {id: "user-deck"}, 
+        this.props.children
+      )
+    )
+  }
+})
+
+var SaveCards = React.createClass({displayName: 'SaveCards',
+  render: function() {
+    return (
+      React.createElement("div", {id: "save-form"}, 
+        React.createElement("input", {type: "button", name: "save[cards]"})
       )
     )
   }
@@ -148,8 +193,8 @@ var FilterSet = React.createClass({displayName: 'FilterSet',
       var cat = { category: category, subcategory: subcategory };
 
       return (
-        React.createElement("div", {onClick: self.props.onChange.bind(null, cat), className: "filter-set", key: subcategory}, 
-          React.createElement("img", {style: style, src: subcategory + ".png", height: "15", width: "15"})
+        React.createElement("div", {style: {fontAlign: "center"}, onClick: self.props.onChange.bind(null, cat), className: "filter-set", key: subcategory}, 
+          React.createElement("img", {style: style, src: subcategory + ".png", height: "15", width: "15"}), subcategory
         )
       )
     })
@@ -166,14 +211,22 @@ var CardList = React.createClass({displayName: 'CardList',
   render: function() {
     var self = this;
     var cards = this.props.cards.map(function(card){
+      var icons = card.mana_cost.map(function(color,i){
+        return React.createElement("img", {key: i, src: color + ".png", height: "15", width: "15"})
+      })
       return (
         React.createElement("div", {
           key: card.multiverseid, 
+          onClick: self.props.addCard.bind(null, card), 
           onMouseEnter: self.props.highlightCard.bind(null, card), 
           onMouseLeave: self.props.removeHighlight, 
           style: {backgroundColor: card.card_colors}, 
           className: "card"
-        }, card.name)
+        }, card.name, 
+          React.createElement("div", {className: "icons"}, 
+            icons
+          )
+        )
       )
     })
 
