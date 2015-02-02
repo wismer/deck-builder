@@ -1,10 +1,18 @@
+<% if user_signed_in? %>
+  <div id='user-id' user-id=<%= current_user.id %>></div>
+  <div id='user-summary' class='container'>
+  </div>
+<% end %>
 <div id="builder" class='container'></div>
-
 
 <script type='text/jsx'>
   /** @jsx React.DOM */
-  React.render(
-    <DeckBuilder />,
-    document.getElementById("builder")
-  )
+
+  var userID = document.getElementById("user-id").getAttribute("user-id")
+  if (userID) {
+    React.render(
+      <WelcomeMat userID={userID} />,
+      document.getElementById("builder")
+    )
+  }
 </script>

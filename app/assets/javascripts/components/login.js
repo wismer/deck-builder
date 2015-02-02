@@ -52,7 +52,9 @@ var PassWord = React.createClass({displayName: 'PassWord',
   },
 
   render: function() {
-    var passwordConfirmation = this.props.newUser ? React.createElement("input", {autoComplete: "off", type: "password", name: "user[password_confirmation]"}) : ""
+    var passwordConfirmation = this.props.newUser
+      ? React.createElement("input", {autoComplete: "off", type: "password", name: "user[password_confirmation]"})
+      : ""
     return (
       React.createElement("div", null, 
         React.createElement("input", {name: "user[password]", type: "password", onChange: this.isLength, placeholder: "password"}), 

@@ -1,3 +1,62 @@
+var WelcomeMat = React.createClass({
+  getInitialState: function() {
+    return { menuSelect: true, builder: false, viewer: false };
+  },
+
+  handleBuildDeck: function(e) {
+    e.preventDefault();
+    this.setState({ menuSelect: false, builder: true, viewer: false })
+  },
+
+  handleViewDecks: function(e) {
+    e.preventDefault();
+    this.setState({ menuSelect: false, builder: false, viewer: true })
+  },
+
+  render: function() {
+    var state = this.state;
+    return (
+      <div id='main'>
+        <div style={{display: state.menuSelect ? "block" : "none" }} className='jumbotron'>
+          <p><a onClick={this.handleBuildDeck} className="btn btn-primary btn-lg" href="#" role="button">Build a Deck</a></p>
+          <p><a onClick={this.handleViewDecks} className="btn btn-primary btn-lg" href="#" role="button">View Decks</a></p>
+        </div>
+
+        <div style={{display: state.builder ? "block" : "none" }} id='builder'>
+          <DeckBuilder userID={this.props.userID} />
+        </div>
+
+        <div style={{display: state.viewer ? "block" : "none" }} id='viewer'>
+          <DeckViewer userID={this.props.userID} />
+        </div>
+      </div>
+    )
+  }
+})
+
+var DeckViewer = React.createClass({
+  getInitialState: function() {
+    return { decks: [] };
+  },
+
+  componentWillMount: function() {
+    var userID = this.props.userID;
+    var params = { user: { user_id: userID } }
+    $.getJSON("/decks", params, function(decks){
+      this.setState({ decks: decks })
+    }.bind(this))
+  },
+
+  render: function() {
+    var decks = this.state.decks.map(function(deck){
+      return <p>{deck.name}</p>
+    })
+    return (
+      <div>{decks}</div>
+    )
+  }
+})
+
 var DeckBuilder = React.createClass({
   getInitialState: function() {
     return {
@@ -23,7 +82,8 @@ var DeckBuilder = React.createClass({
         }
       },
       highlightedCard: {},
-      expansions: []
+      expansions: [],
+      deck_id: null
     }
   },
 
@@ -70,11 +130,18 @@ var DeckBuilder = React.createClass({
   },
 
   loadCards: function() {
-    var expansions = this.state.expansions.filter(function(set){
+    var data = {};
+    data.expansions = {
+      expansion_id: this.state.expansions.filter(function(set){
       return set.selected;
-    }).map(function(set){ return set.id });
-    $.getJSON("/cards/query", { expansions: { expansion_id: expansions } }, function(cards){
-      this.setState({ cards: cards, expansionSelect: false })
+      }).map(function(set){ return set.id })
+    };
+
+
+    data.user = { name: this.refs.deckName.getDOMNode().value, user_id: this.props.userID };
+
+    $.getJSON("/decks/new", data, function(response){
+      this.setState({ deck_id: response.deck, cards: response.cards, expansionSelect: false })
     }.bind(this))
   },
 
@@ -124,9 +191,10 @@ var DeckBuilder = React.createClass({
       ? <CardHighlight {...this.state.highlightedCard} />
       : ""
     return (
-      <div id='main'>
+      <div id='main' className='container'>
         <div style={showExpansions} id='deck-builder' className='container'>
           <Expansions onClick={this.handleExpSelection} sets={this.state.expansions} />
+          <input type='text' ref='deckName' />
           <button onClick={this.loadCards} type='button' className='btn btn-default btn-md'>Load Cards</button>
         </div>
 
@@ -147,7 +215,7 @@ var DeckBuilder = React.createClass({
 
           <UserDeck>
             {userCards}
-            <SaveCards />
+            <SaveCards userID={this.props.userID} deckID={this.state.deck_id} cards={pickedCards} />
           </UserDeck>
         </div>
       </div>
@@ -166,10 +234,37 @@ var UserDeck = React.createClass({
 })
 
 var SaveCards = React.createClass({
+  handleSaveCards: function(e) {
+    e.preventDefault();
+    var data = {};
+    var deckID = this.props.deckID;
+    var savedCards = this.props.cards;
+
+    data.cards = {
+      deck: deckID,
+      player_cards: _.keys(savedCards).map(function(id){
+        // return [id, savedCards[id].count]
+        return { deck_id: deckID, card_id: id, count: savedCards[id].count };
+      })
+    }
+
+    data.deck = deckID
+
+    $.ajax({
+      method: "POST",
+      dataType: "json",
+      url: "/decks",
+      data: data,
+      success: function(d) {
+        debugger
+      }
+    })
+  },
+
   render: function() {
     return (
-      <div id='save-form'>
-        <input type='button' name='save[cards]'></input>
+      <div id='submit-deck'>
+        <input onClick={this.handleSaveCards} type='submit' name='deck[cards]'/>
       </div>
     )
   }

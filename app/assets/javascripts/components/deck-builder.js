@@ -1,3 +1,62 @@
+var WelcomeMat = React.createClass({displayName: 'WelcomeMat',
+  getInitialState: function() {
+    return { menuSelect: true, builder: false, viewer: false };
+  },
+
+  handleBuildDeck: function(e) {
+    e.preventDefault();
+    this.setState({ menuSelect: false, builder: true, viewer: false })
+  },
+
+  handleViewDecks: function(e) {
+    e.preventDefault();
+    this.setState({ menuSelect: false, builder: false, viewer: true })
+  },
+
+  render: function() {
+    var state = this.state;
+    return (
+      React.createElement("div", {id: "main"}, 
+        React.createElement("div", {style: {display: state.menuSelect ? "block" : "none"}, className: "jumbotron"}, 
+          React.createElement("p", null, React.createElement("a", {onClick: this.handleBuildDeck, className: "btn btn-primary btn-lg", href: "#", role: "button"}, "Build a Deck")), 
+          React.createElement("p", null, React.createElement("a", {onClick: this.handleViewDecks, className: "btn btn-primary btn-lg", href: "#", role: "button"}, "View Decks"))
+        ), 
+
+        React.createElement("div", {style: {display: state.builder ? "block" : "none"}, id: "builder"}, 
+          React.createElement(DeckBuilder, {userID: this.props.userID})
+        ), 
+
+        React.createElement("div", {style: {display: state.viewer ? "block" : "none"}, id: "viewer"}, 
+          React.createElement(DeckViewer, {userID: this.props.userID})
+        )
+      )
+    )
+  }
+})
+
+var DeckViewer = React.createClass({displayName: 'DeckViewer',
+  getInitialState: function() {
+    return { decks: [] };
+  },
+
+  componentWillMount: function() {
+    var userID = this.props.userID;
+    var params = { user: { user_id: userID } }
+    $.getJSON("/decks", params, function(decks){
+      this.setState({ decks: decks })
+    }.bind(this))
+  },
+
+  render: function() {
+    var decks = this.state.decks.map(function(deck){
+      return React.createElement("p", null, deck.name)
+    })
+    return (
+      React.createElement("div", null, decks)
+    )
+  }
+})
+
 var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
   getInitialState: function() {
     return {
@@ -23,7 +82,8 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
         }
       },
       highlightedCard: {},
-      expansions: []
+      expansions: [],
+      deck_id: null
     }
   },
 
@@ -70,11 +130,18 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
   },
 
   loadCards: function() {
-    var expansions = this.state.expansions.filter(function(set){
+    var data = {};
+    data.expansions = {
+      expansion_id: this.state.expansions.filter(function(set){
       return set.selected;
-    }).map(function(set){ return set.id });
-    $.getJSON("/cards/query", { expansions: { expansion_id: expansions } }, function(cards){
-      this.setState({ cards: cards, expansionSelect: false })
+      }).map(function(set){ return set.id })
+    };
+
+
+    data.user = { name: this.refs.deckName.getDOMNode().value, user_id: this.props.userID };
+
+    $.getJSON("/decks/new", data, function(response){
+      this.setState({ deck_id: response.deck, cards: response.cards, expansionSelect: false })
     }.bind(this))
   },
 
@@ -124,9 +191,10 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
       ? React.createElement(CardHighlight, React.__spread({},  this.state.highlightedCard))
       : ""
     return (
-      React.createElement("div", {id: "main"}, 
+      React.createElement("div", {id: "main", className: "container"}, 
         React.createElement("div", {style: showExpansions, id: "deck-builder", className: "container"}, 
           React.createElement(Expansions, {onClick: this.handleExpSelection, sets: this.state.expansions}), 
+          React.createElement("input", {type: "text", ref: "deckName"}), 
           React.createElement("button", {onClick: this.loadCards, type: "button", className: "btn btn-default btn-md"}, "Load Cards")
         ), 
 
@@ -147,7 +215,7 @@ var DeckBuilder = React.createClass({displayName: 'DeckBuilder',
 
           React.createElement(UserDeck, null, 
             userCards, 
-            React.createElement(SaveCards, null)
+            React.createElement(SaveCards, {userID: this.props.userID, deckID: this.state.deck_id, cards: pickedCards})
           )
         )
       )
@@ -166,10 +234,37 @@ var UserDeck = React.createClass({displayName: 'UserDeck',
 })
 
 var SaveCards = React.createClass({displayName: 'SaveCards',
+  handleSaveCards: function(e) {
+    e.preventDefault();
+    var data = {};
+    var deckID = this.props.deckID;
+    var savedCards = this.props.cards;
+
+    data.cards = {
+      deck: deckID,
+      player_cards: _.keys(savedCards).map(function(id){
+        // return [id, savedCards[id].count]
+        return { deck_id: deckID, card_id: id, count: savedCards[id].count };
+      })
+    }
+
+    data.deck = deckID
+
+    $.ajax({
+      method: "POST",
+      dataType: "json",
+      url: "/decks",
+      data: data,
+      success: function(d) {
+        debugger
+      }
+    })
+  },
+
   render: function() {
     return (
-      React.createElement("div", {id: "save-form"}, 
-        React.createElement("input", {type: "button", name: "save[cards]"})
+      React.createElement("div", {id: "submit-deck"}, 
+        React.createElement("input", {onClick: this.handleSaveCards, type: "submit", name: "deck[cards]"})
       )
     )
   }
