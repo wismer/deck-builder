@@ -2,10 +2,17 @@ class Card < ActiveRecord::Base
   belongs_to :expansion
   has_one :expansion
 
+  ABILITIES = [
+    "Flying", "Banding", "First Strike", "Double Strike", "Intimidate",
+    "Hexproof", "Lifelink", "Trample", "Deathtouch", "Haste"
+  ]
+
   self.primary_key = "multiverseid"
 
-  def flying?
-    self.card_text.nil? ? false : self.card_text.split("\n").any? { |line| line =~ /Flying/ }
+  ABILITIES.each do |ability|
+    self.send(:define_method, "#{ability.downcase.gsub(" ", "_")}?", ->() {
+      self.card_text == "" ? false : self.card_text.split("\n").any? { |line| line =~ Regexp.new(ability, "i") }
+    })
   end
 
   def card_types
@@ -24,12 +31,8 @@ class Card < ActiveRecord::Base
     super.split(", ") if super
   end
 
-  def creature?
-    self.card_type === "Creature"
-  end
-
-  def reform
-    { isCreature: creature? }
+  def card_text
+    super.nil? ? "" : super
   end
 
   def mana_cost
@@ -53,5 +56,10 @@ class Card < ActiveRecord::Base
     else
       []
     end
+  end
+
+  def method_missing(type, *args)
+    # if !self.respond_to?(type)
+
   end
 end
