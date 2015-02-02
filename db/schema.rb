@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20150109004644) do
+ActiveRecord::Schema.define(version: 20150119191309) do
 
   create_table "cards", force: true do |t|
     t.string   "name"
@@ -36,6 +36,15 @@ ActiveRecord::Schema.define(version: 20150109004644) do
 
   add_index "cards", ["expansion_id"], name: "index_cards_on_expansion_id"
 
+  create_table "decks", force: true do |t|
+    t.string   "name"
+    t.integer  "user_id"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+  end
+
+  add_index "decks", ["user_id"], name: "index_decks_on_user_id"
+
   create_table "expansions", force: true do |t|
     t.string   "name"
     t.date     "release_date"
@@ -44,6 +53,17 @@ ActiveRecord::Schema.define(version: 20150109004644) do
     t.datetime "updated_at"
     t.string   "booster"
   end
+
+  create_table "player_cards", force: true do |t|
+    t.integer  "count"
+    t.integer  "deck_id"
+    t.datetime "created_at"
+    t.datetime "updated_at"
+    t.integer  "card_id"
+  end
+
+  add_index "player_cards", ["card_id"], name: "index_player_cards_on_card_id"
+  add_index "player_cards", ["deck_id"], name: "index_player_cards_on_deck_id"
 
   create_table "users", force: true do |t|
     t.string   "email",                  default: "", null: false
